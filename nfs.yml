@@ -1,0 +1,43 @@
+---
+- name: NFS share
+  hosts: 192.168.122.75
+  gather_facts: false
+  tasks:
+  - name: create directory
+    file:
+       path: /nfsshare
+       state: directory
+  - name: Update exports file
+    lineinfile:
+       path: /etc/exports
+       line: /nfsshare *(rw,sync)
+       create: yes
+  - name: start service
+    service:
+       name: nfs-server
+       state: started
+       enabled: yes
+  - name: To export nfs share
+    command: exportfs -arvf
+  - name: firewall
+    firewalld:
+       service: nfs
+       permanent: yes
+       immediate: true
+       state: enabled
+
+- name: Install client side
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: create directory
+    file:
+       path: /mnt/nfsshare
+       state: directory
+  - name: update entry in /etc/fstab
+    mount:
+       path: /mnt/nfsshare
+       src: 192.168.122.75:/nfsshare
+       fstype: nfs
+       state: present
+       opts: defaults
